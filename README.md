@@ -390,7 +390,7 @@ DO UPDATE SET fare_conditions=excluded.fare_conditions RETURNING *;
 Предлагаю проверить экспериментально: Создаем таблицу 
 ```
 CREATE TABLE TEST (c1 text, c2 text);
-'''
+```
 Вносим значение 
 ```
 INSERT INTO TEST (c1) VALUES ('ABC'); 
@@ -682,7 +682,8 @@ ON r.arrival_city = a.city
 GROUP BY 1, 2;
 
 RETURNED (101 rows)
-```Аналитика:
+```
+Аналитика:
 ```
 1:
 
@@ -725,4 +726,5 @@ GROUP BY 1, 2;
                ->  Seq Scan on airports a  (cost=0.00..3.04 rows=104 width=32) (actual time=0.022..1.154 rows=104 loops=1)
  Planning Time: 0.428 ms
  Execution Time: 37.777 ms
-(11 rows)```
+(11 rows)
+```
