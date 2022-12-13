@@ -1042,3 +1042,292 @@ GROUP BY 1, 2;
  Execution Time: 37.777 ms
 (11 rows)
 ```
+## ДЗ 10
+### №12
+>Сделайте выборки данных из таблиц «Персонал» и «Организационная структура», а также реконструируйте организационную структуру с помощью двух представлений (view). Команды можно выполнять не только в среде интерактивного терминала psql, но также и из командной строки операционной системы. Выполните эти команды в командной строке операционной системы:
+```
+ais=# select * from personnel;
+ emp_nbr | emp_name |         address         | birth_date 
+---------+----------+-------------------------+------------
+       0 | вакансия |                         | 2014-05-19
+       1 | Иван     | ул. Любителей языка C   | 1962-12-01
+       2 | Петр     | ул. UNIX гуру           | 1965-10-21
+       3 | Антон    | ул. Ассемблерная        | 1964-04-17
+       4 | Захар    | ул. им. СУБД PostgreSQL | 1963-09-27
+       5 | Ирина    | просп. Программистов    | 1968-05-12
+       6 | Анна     | пер. Перловый           | 1969-03-20
+       7 | Андрей   | пл. Баз данных          | 1945-11-07
+       8 | Николай  | наб. ОС Linux           | 1944-12-01
+(9 rows)
+
+ais=# select * from personnel_org_chart;
+ emp_nbr |   emp   | boss_emp_nbr | boss  
+---------+---------+--------------+-------
+       1 | Иван    |            ø | ø
+       2 | Петр    |            1 | Иван
+       3 | Антон   |            1 | Иван
+       4 | Захар   |            3 | Антон
+       5 | Ирина   |            3 | Антон
+       6 | Анна    |            3 | Антон
+       7 | Андрей  |            5 | Ирина
+       8 | Николай |            5 | Ирина
+(8 rows)
+
+ais=# select * from create_paths;
+ level1 | level2 | level3 | level4  
+--------+--------+--------+---------
+ Иван   | Антон  | Ирина  | Андрей
+ Иван   | Антон  | Ирина  | Николай
+ Иван   | Петр   | ø      | ø
+ Иван   | Антон  | Захар  | ø
+ Иван   | Антон  | Анна   | ø
+(5 rows)
+
+ais=# select * from org_chart;
+      job_title      | emp_nbr | boss_emp_nbr |  salary   
+---------------------+---------+--------------+-----------
+ Президент           |       1 |            ø | 1000.0000
+ Вице-президент 1    |       2 |            1 |  900.0000
+ Вице-президент 2    |       3 |            1 |  800.0000
+ Архитектор          |       4 |            3 |  700.0000
+ Ведущий программист |       5 |            3 |  600.0000
+ Программист C       |       6 |            3 |  500.0000
+ Программист Perl    |       7 |            5 |  450.0000
+ Оператор            |       8 |            5 |  400.0000
+(8 rows)
+```
+### №13
+>Выполните проверку структуры дерева на предмет отсутствия циклов с помощью функции ```tree_test()```. Если вы еще не вносили изменения в таблицу «Организационная структура», то функция покажет отсутствие нарушения структуры дерева. Теперь создайте в таблице «Организационная структура» сначала короткий цикл, а затем длинный цикл. Для каждого из указанных циклов выполните проверку с помощью функции ```tree_test()```
+```
+ais=# update org_chart set boss_emp_nbr = 2 where emp_nbr = 3;
+UPDATE 1
+ais=# select * from tree_test();
+ tree_test 
+-----------
+ Cycles
+(1 row)
+
+ais=# update org_chart set boss_emp_nbr = 6 where emp_nbr = 3;
+UPDATE 1
+ais=# select * from tree_test();
+ tree_test 
+-----------
+ Cycles
+(1 row)
+```
+### №14
+>Выполните обход дерева организационной структуры снизу вверх, начиная с конкретного узла, можно с помощью функции up_tree_traversal() либо функции up_tree_traversal2().
+```
+ais=# select * from up_tree_traversal(6);
+ emp_nbr | boss_emp_nbr 
+---------+--------------
+       6 |            3
+       3 |            1
+       1 |            ø
+(3 rows)
+ais=# select * from up_tree_traversal2(6) as (emp int, boss int);
+ emp | boss 
+-----+------
+   6 |    3
+   3 |    1
+   1 |    ø
+(3 rows)
+ais=# select * from up_tree_traversal (( select emp_nbr from personnel where emp_name = 'Захар' ));
+ emp_nbr | boss_emp_nbr 
+---------+--------------
+       4 |            3
+       3 |            1
+       1 |            ø
+(3 rows)
+```
+### №15
+> Выполните операцию удаления поддерева с помощью функции delete_subtree(). Параметром функции является код работника.
+```
+ais=# select * from create_paths;
+ level1 | level2 | level3 | level4  
+--------+--------+--------+---------
+ Иван   | Антон  | Ирина  | Андрей
+ Иван   | Антон  | Ирина  | Николай
+ Иван   | Петр   | ø      | ø
+ Иван   | Антон  | Захар  | ø
+ Иван   | Антон  | Анна   | ø
+(5 rows)
+ais=# select * from personnel_org_chart;
+ emp_nbr |   emp   | boss_emp_nbr | boss  
+---------+---------+--------------+-------
+       1 | Иван    |            ø | ø
+       2 | Петр    |            1 | Иван
+       3 | Антон   |            1 | Иван
+       4 | Захар   |            3 | Антон
+       5 | Ирина   |            3 | Антон
+       6 | Анна    |            3 | Антон
+       7 | Андрей  |            5 | Ирина
+       8 | Николай |            5 | Ирина
+(8 rows)
+ais=# select * from delete_subtree(4);
+ delete_subtree 
+----------------
+ 
+(1 row)
+ais=# select * from create_paths;
+ level1 | level2 | level3 | level4  
+--------+--------+--------+---------
+ Иван   | Антон  | Ирина  | Андрей
+ Иван   | Антон  | Ирина  | Николай
+ Иван   | Петр   | ø      | ø
+ Иван   | Антон  | Анна   | ø
+(4 rows)
+ais=# select * from personnel_org_chart;
+ emp_nbr |   emp   | boss_emp_nbr | boss  
+---------+---------+--------------+-------
+       1 | Иван    |            ø | ø
+       2 | Петр    |            1 | Иван
+       3 | Антон   |            1 | Иван
+       5 | Ирина   |            3 | Антон
+       6 | Анна    |            3 | Антон
+       7 | Андрей  |            5 | Ирина
+       8 | Николай |            5 | Ирина
+(7 rows)
+ais=# select * from delete_subtree(( select emp_nbr from personnel where emp_name = 'Анна' )); delete_subtree 
+----------------
+ 
+(1 row)
+ais=# select * from create_paths;
+ level1 | level2 | level3 | level4  
+--------+--------+--------+---------
+ Иван   | Антон  | Ирина  | Андрей
+ Иван   | Антон  | Ирина  | Николай
+ Иван   | Петр   | ø      | ø
+(3 rows)
+ais=# select * from personnel_org_chart;
+ emp_nbr |   emp   | boss_emp_nbr | boss  
+---------+---------+--------------+-------
+       1 | Иван    |            ø | ø
+       2 | Петр    |            1 | Иван
+       3 | Антон   |            1 | Иван
+       5 | Ирина   |            3 | Антон
+       7 | Андрей  |            5 | Ирина
+       8 | Николай |            5 | Ирина
+(6 rows)
+```
+### №16
+>Выполните удаление элемента иерархии и продвижение дочерних элементов на один уровень вверх (т. е. к «бабушке»).
+```
+ais=# select * from delete_and_promote_subtree(( select emp_nbr from personnel where emp_name='Антон' ));
+ delete_and_promote_subtree 
+----------------------------
+ 
+(1 row)
+ais=# select * from create_paths;
+ level1 | level2 | level3  | level4 
+--------+--------+---------+--------
+ Иван   | Петр   | ø       | ø
+ Иван   | Ирина  | Николай | ø
+ Иван   | Ирина  | Андрей  | ø
+(3 rows)
+ais=# select * from personnel_org_chart;
+ emp_nbr |   emp   | boss_emp_nbr | boss  
+---------+---------+--------------+-------
+       1 | Иван    |            ø | ø
+       2 | Петр    |            1 | Иван
+       7 | Андрей  |            5 | Ирина
+       8 | Николай |            5 | Ирина
+       5 | Ирина   |            1 | Иван
+(5 rows)
+```
+### №17
+>Представление Create_paths позволяет отобразить только четыре уровня иерархии. Модифицируйте его так, чтобы оно могло работать с пятью уровнями иерархии.
+```
+ais=# create view create_paths_5 (level1, level2, level3, level4, level5) as
+select O1.emp as e1, O2.emp as e2, O3.emp as e3, O4.emp as e4, O5.emp as e5
+ais-# from personnel_org_chart as O1
+ais-# left outer join personnel_org_chart as O2
+ais-# on O1.emp = O2.boss
+ais-# left outer join personnel_org_chart as O3
+ais-# on O2.emp = O3.boss
+ais-# left outer join personnel_org_chart as O4
+ais-# on O3.emp = O4.boss
+ais-# left outer join personnel_org_chart as O5
+ais-# on O4.emp = O5.boss where O1.emp = 'Иван';
+CREATE VIEW
+
+ais=# select * from create_paths_5;
+ level1 | level2 | level3  | level4 | level5 
+--------+--------+---------+--------+--------
+ Иван   | Ирина  | Андрей  | ø      | ø
+ Иван   | Ирина  | Николай | ø      | ø
+ Иван   | Петр   | ø       | ø      | ø
+(3 rows)
+```
+### №18
+>Напишите небольшую функцию с применением курсора.
+```
+ais=# alter table personnel add column ne_goden text;
+ALTER TABLE
+
+ais=# create or replace function army() returns void as
+ais-# $$
+ais$# declare curs cursor for select * from personnel where (cast(current_date as date)-cast(birth_date as date))/365 > 27;
+ais$# begin
+ais$# open curs;
+ais$# move curs;
+ais$# while found loop
+ais$# update personnel set ne_goden='yes' where current of curs;
+ais$# move curs;
+ais$# end loop;
+ais$# close curs;
+ais$# end
+ais$# $$
+ais-# language plpgsql;
+CREATE FUNCTION
+
+ais=# select * from army();
+ army 
+------
+ 
+(1 row)
+
+ais=# select * from personnel;
+ emp_nbr | emp_name |         address         | birth_date | ne_goden 
+---------+----------+-------------------------+------------+----------
+       0 | вакансия |                         | 2014-05-19 | ø
+       1 | Иван     | ул. Любителей языка C   | 1962-12-01 | yes
+       2 | Петр     | ул. UNIX гуру           | 1965-10-21 | yes
+       3 | Антон    | ул. Ассемблерная        | 1964-04-17 | yes
+       4 | Захар    | ул. им. СУБД PostgreSQL | 1963-09-27 | yes
+       5 | Ирина    | просп. Программистов    | 1968-05-12 | yes
+       6 | Анна     | пер. Перловый           | 1969-03-20 | yes
+       7 | Андрей   | пл. Баз данных          | 1945-11-07 | yes
+       8 | Николай  | наб. ОС Linux           | 1944-12-01 | yes
+(9 rows)
+```
+## ДЗ 11
+### Полнотекстовый поиск
+```
+demo=# create table library (book_id integer primary key, book_description text);
+CREATE TABLE
+demo=# \copy books from 'books2.txt';
+COPY 1000
+demo=# alter table library add column ts_description tsvector;
+ALTER TABLE
+demo=# update books set ts_description = to_tsvector('russian', book_description);
+UPDATE 1000
+
+demo=# SELECT * FROM library WHERE ts_description @@ to_tsquery('SQL');
+-[ RECORD 1 ]----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+book_id          | 807
+book_description | Маркин, Александр Васильевич. Построение запросов и программирование на SQL [Текст] : учебное пособие : [для студентов высших учебных заведений, обучающихся по специальности 230201 "Информационные системы и технологии"] / А. В. Маркин. - Москва : Диалог-МИФИ, 2011. - 344 с.
+ts_description   | '2011':33 '230201':21 '344':34 'sql':9 'александр':2 'васильевич':3 'высш':15 'диалог':31 'диалог-миф':30 'заведен':17 'запрос':5 'информацион':22 'маркин':1,28 'миф':32 'москв':29 'обуча':18 'пособ':12 'построен':4 'программирован':7 'систем':23 'специальн':20 'студент':14 'текст':10 'технолог':25 'учебн':11,16
+
+demo=# SELECT count(*) FROM books WHERE ts_description @@ plainto_tsquery('маи');
+ count 
+-------
+    3
+(1 row)
+
+demo=# SELECT count(*) FROM books WHERE ts_description @@ to_tsquery('программирование');
+ count 
+-------
+    199
+(1 row)
+```
